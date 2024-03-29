@@ -1,23 +1,195 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Registration</title>
+    <title>Registration & Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .forms-container {
+            display: flex;
+            gap: 20px;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            width: 100%;
+        }
+        input[type="text"], input[type="email"], input[type="password"], input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+        .oauth-buttons {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .oauth-button {
+            background-color: #dd4b39; /* Default red for Google */
+            color: white;
+            padding: 10px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            text-transform: uppercase;
+            gap: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .oauth-button.google {
+            background-color: #dd4b39;
+        }
+        .oauth-button.facebook {
+            background-color: #3b5998;
+        }
+        .oauth-button.github {
+            background-color: #333;
+        }
+        .icon {
+            display: inline-block;
+            height: 20px;
+            width: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Registration Form</h2>
-    <form action="/register" method="post">
-        <label for="username">Username:</label><br>
-        <input type="text" id="username" name="username" required><br>
-        <label for="email">Email:</label><br>
-        <input type="email" id="email" name="email" required><br>
-        <label for="password">Password:</label><br>
-        <input type="password" id="password" name="password" required><br><br>
-        <input type="submit" value="Register">
-    </form>
+    <div class="forms-container">
+        <div class="container">
+            <h2>Registration Form</h2>
+            <form id="registration-form">
+<!--                <input type="text" id="username" name="username" placeholder="Username" required>-->
+                <input type="email" id="email" name="email" placeholder="Email" required>
+                <input type="password" id="password" name="password" placeholder="Password" required>
+                <input type="button" onclick="registerUser()" value="Register">
+            </form>
+        </div>
+        <div class="container">
+            <h2>Login</h2>
+            <form id="login-form">
+                <input type="email" id="login-email" name="email" placeholder="Email" required>
+                <input type="password" id="login-password" name="password" placeholder="Password" required>
+                <input type="button" onclick="loginUser()" value="Login">
+            </form>
+            <div class="oauth-buttons">
+                <button class="oauth-button google" onclick="location.href='/api/auth/login/google'">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/google/google-original.svg" alt="Google" class="icon">Google
+                </button>
+                <button class="oauth-button facebook" onclick="location.href='/api/auth/login/facebook'">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon@latest/icons/facebook/facebook-original.svg" alt="Facebook" class="icon">Facebook
+                </button>
+                <button class="oauth-button github" onclick="location.href='/api/auth/login/github'">
+                    <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/git/git-original.svg" alt="GitHub" class="icon">GitHub
+                </button>
+            </div>
+        </div>
+    </div>
+<script>
+       function registerUser() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
 
-    <h2>Or register with:</h2>
-    <button onclick="location.href='/login/google'">Google</button>
-    <button onclick="location.href='/login/facebook'">Facebook</button>
-    <button onclick="location.href='/login/github'">GitHub</button>
+    fetch('/auth/signup', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            username: email,
+            password: password,
+        }),
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else if (response.status === 409) {
+            throw new Error('User already exists');
+        } else {
+            throw new Error('Something went wrong');
+        }
+    })
+    .then(data => {
+        console.log(data);
+        alert(`User ${email} registered successfully`);
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
+
+
+       function loginUser() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
+
+    fetch('/auth/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            username: email,
+            password: password,
+        }),
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.json();
+        } else if (response.status === 401) {
+            throw new Error('Invalid email or password');
+        } else {
+            throw new Error('Something went wrong');
+        }
+    })
+    .then(data => {
+        console.log(data);
+        alert('Logged in successfully');
+        // Можете сохранить полученный токен для дальнейшего использования
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+        alert(error.message);
+    });
+}
+
+
+    </script>
 </body>
 </html>

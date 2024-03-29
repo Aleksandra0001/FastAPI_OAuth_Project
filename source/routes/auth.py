@@ -24,7 +24,7 @@ class Hash:
 SECRET_KEY = "secret_key"
 ALGORITHM = "HS256"
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 # define a function to generate a new access token

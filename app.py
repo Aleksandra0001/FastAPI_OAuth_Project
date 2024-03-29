@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
 
-from source.routes.auth import create_access_token, create_refresh_token, get_email_form_refresh_token, get_current_user, Hash
+from source.routes.auth import create_access_token, create_refresh_token, get_email_form_refresh_token, \
+    get_current_user, Hash
 from source.database.db import User, get_db
 
 app = FastAPI()
@@ -19,12 +20,14 @@ class UserModel(BaseModel):
     password: str
 
 
-@app.get("/home", response_class=HTMLResponse)
+@app.get("/auth", response_class=HTMLResponse)
 async def home_page(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-@app.post("/signup")
+
+@app.post("/auth/signup")
 async def signup(body: UserModel, db: Session = Depends(get_db)):
+    print('BODY:', body.dict())
     exist_user = db.query(User).filter(User.email == body.username).first()
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
@@ -35,7 +38,7 @@ async def signup(body: UserModel, db: Session = Depends(get_db)):
     return {"new_user": new_user.email}
 
 
-@app.post("/login")
+@app.post("/auth/login")
 async def login(body: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == body.username).first()
     if user is None:
@@ -50,7 +53,7 @@ async def login(body: OAuth2PasswordRequestForm = Depends(), db: Session = Depen
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
-@app.get('/refresh_token')
+@app.get('/auth/refresh_token')
 async def refresh_token(credentials: HTTPAuthorizationCredentials = Security(security), db: Session = Depends(get_db)):
     token = credentials.credentials
     email = await get_email_form_refresh_token(token)
@@ -67,12 +70,12 @@ async def refresh_token(credentials: HTTPAuthorizationCredentials = Security(sec
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
-
-
-@app.get("/secret")
+@app.get("/auth/secret")
 async def read_item(current_user: User = Depends(get_current_user)):
     return {"message": 'secret router', "owner": current_user.email}
 
+
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host='localhost', port=8000)
