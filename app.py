@@ -1,13 +1,15 @@
-from fastapi import FastAPI, Depends, HTTPException, status, Security
+from fastapi import FastAPI, Depends, HTTPException, status, Security, Request
+from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from fastapi.templating import Jinja2Templates
 
-
-from auth import create_access_token, create_refresh_token, get_email_form_refresh_token, get_current_user, Hash
-from database.db import User, get_db
+from source.routes.auth import create_access_token, create_refresh_token, get_email_form_refresh_token, get_current_user, Hash
+from source.database.db import User, get_db
 
 app = FastAPI()
+templates = Jinja2Templates(directory="source/templates")
 hash_handler = Hash()
 security = HTTPBearer()
 
@@ -16,6 +18,10 @@ class UserModel(BaseModel):
     username: str
     password: str
 
+
+@app.get("/home", response_class=HTMLResponse)
+async def home_page(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/signup")
 async def signup(body: UserModel, db: Session = Depends(get_db)):
@@ -61,9 +67,6 @@ async def refresh_token(credentials: HTTPAuthorizationCredentials = Security(sec
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
 
 
 @app.get("/secret")

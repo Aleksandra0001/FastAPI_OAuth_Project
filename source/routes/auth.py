@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 from starlette import status
 
-from database.db import get_db, User
+from source.database.db import get_db, User
 
 
 class Hash:
