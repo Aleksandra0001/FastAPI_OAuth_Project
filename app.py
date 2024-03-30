@@ -4,15 +4,23 @@ from fastapi.security import OAuth2PasswordRequestForm, HTTPAuthorizationCredent
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from fastapi.templating import Jinja2Templates
-
+from source.service.google_auth import oauth
+from source.service.github_auth import oauth_github
 from source.routes.auth import create_access_token, create_refresh_token, get_email_form_refresh_token, \
     get_current_user, Hash
 from source.database.db import User, get_db
+from starlette.middleware.sessions import SessionMiddleware
+from starlette.config import Config
 
+config = Config(".env")
 app = FastAPI()
 templates = Jinja2Templates(directory="source/templates")
 hash_handler = Hash()
 security = HTTPBearer()
+
+#Секретний ключ можна згенерувати за допомогою команди:
+# openssl rand -hex 32 або самостійно вказати вручну
+app.add_middleware(SessionMiddleware, secret_key=config("SECRET_KEY"))
 
 
 class UserModel(BaseModel):
@@ -73,6 +81,31 @@ async def refresh_token(credentials: HTTPAuthorizationCredentials = Security(sec
 @app.get("/auth/secret")
 async def read_item(current_user: User = Depends(get_current_user)):
     return {"message": 'secret router', "owner": current_user.email}
+
+@app.get("/auth/google")
+async def auth_via_google(request: Request):
+    redirect_uri = request.url_for('auth_via_google_callback')
+    return await oauth.google.authorize_redirect(request, redirect_uri)
+
+@app.get("/auth/google/callback")
+async def auth_via_google_callback(request: Request):
+    token = await oauth.google.authorize_access_token(request)
+    user = await oauth.google.parse_id_token(request, token)
+    return {"user": user}
+
+@app.get("/auth/github")
+async def auth_via_github(request: Request):
+    redirect_uri = request.url_for('auth_via_github_callback')
+    return await oauth_github.github.authorize_redirect(request, redirect_uri)
+
+
+@app.get("/auth/github/callback")
+async def auth_via_github_callback(request: Request):
+    token = await oauth_github.github.authorize_access_token(request)
+    resp = await oauth_github.github.get('https://api.github.com/user', token=token)
+    user = resp.json()
+    # print('USER:', user)
+    return {"user": user}
 
 
 if __name__ == "__main__":
